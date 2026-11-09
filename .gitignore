@@ -1,0 +1,13 @@
+# Secrets — ne jamais commit
+.env
+.env.local
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+
+# Vercel / Next
+.vercel/
+simbot-web/.next/
+simbot-web/node_modules/

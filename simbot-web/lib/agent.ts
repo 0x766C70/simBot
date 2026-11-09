@@ -1,4 +1,8 @@
 import { Mistral } from "@mistralai/mistralai";
+import type { AssistantMessage } from "@mistralai/mistralai/models/components/assistantmessage.js";
+import type { SystemMessage } from "@mistralai/mistralai/models/components/systemmessage.js";
+import type { ToolMessage } from "@mistralai/mistralai/models/components/toolmessage.js";
+import type { UserMessage } from "@mistralai/mistralai/models/components/usermessage.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   StreamableHTTPClientTransport,
@@ -50,7 +54,13 @@ export async function runSimbot(
       },
     }));
 
-    const messages: Array<Record<string, unknown>> = [
+type Message =
+  | (SystemMessage & { role: "system" })
+  | (UserMessage & { role: "user" })
+  | (AssistantMessage & { role: "assistant" })
+  | (ToolMessage & { role: "tool" });
+
+    const messages: Message[] = [
       { role: "system", content: SYSTEM_PROMPT },
       ...history.map((m) => ({ role: m.role, content: m.content })),
     ];
@@ -65,20 +75,26 @@ export async function runSimbot(
       const choice = response.choices?.[0];
       if (!choice) throw new Error("Réponse Mistral vide");
 
-      const message = choice.message as {
-        role: string;
-        content?: string | null;
-        toolCalls?: Array<{
-          id: string;
-          function: { name: string; arguments: string | object };
-        }>;
-      };
+      const message = choice.message as AssistantMessage;
 
       if (!message.toolCalls || message.toolCalls.length === 0) {
-        return message.content ?? "";
+        const content = message.content;
+        if (typeof content === "string") return content;
+        if (Array.isArray(content)) {
+          return content
+            .map((chunk) =>
+              typeof chunk === "string"
+                ? chunk
+                : "text" in (chunk as Record<string, unknown>)
+                  ? String((chunk as { text?: string }).text ?? "")
+                  : ""
+            )
+            .join("");
+        }
+        return "";
       }
 
-      messages.push(message);
+      messages.push({ ...message, role: "assistant" });
       for (const call of message.toolCalls) {
         const args =
           typeof call.function.arguments === "string"
@@ -99,7 +115,7 @@ export async function runSimbot(
           role: "tool",
           toolCallId: call.id,
           content: resultText,
-        });
+        } satisfies ToolMessage);
       }
     }
 

@@ -1,0 +1,3 @@
+[console_scripts]
+simbot = simbot:main
+test-solo = test_solo:main

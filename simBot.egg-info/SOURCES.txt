@@ -1,0 +1,8 @@
+pyproject.toml
+simbot.py
+simBot.egg-info/PKG-INFO
+simBot.egg-info/SOURCES.txt
+simBot.egg-info/dependency_links.txt
+simBot.egg-info/entry_points.txt
+simBot.egg-info/requires.txt
+simBot.egg-info/top_level.txt

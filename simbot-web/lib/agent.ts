@@ -1,4 +1,4 @@
-import Mistral from "@mistralai/mistralai";
+import { Mistral } from "@mistralai/mistralai";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import {
   StreamableHTTPClientTransport,

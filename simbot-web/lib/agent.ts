@@ -19,7 +19,11 @@ Règles :
   en une phrase et rappelle que tu ne réponds que sur les sujets mobiles.
   N'utilise aucun outil dans ce cas.
 - Pour toute question sur les eSIM, forfaits, réseaux ou destinations,
-  sers-toi des outils MCP Simvito fournis. Réponds en français.`;
+  sers-toi des outils MCP Simvito fournis. Réponds en français.
+- Lorsque tu présentes des forfaits, indique UNIQUEMENT pour chacun :
+  les opérateurs locaux, le prix et la quantité de données.
+  N'inclue jamais d'URL, de lien ou de renvoi vers un site d'achat,
+  même si les outils t'en fournissent.`;
 
 const MAX_STEPS = 6;
 
@@ -27,6 +31,19 @@ export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
+
+/**
+ * Retire toute URL de la réponse finale : garde le libellé des liens
+ * markdown, supprime les liens nus. Garantie appliquée après le prompt.
+ */
+function stripUrls(text: string): string {
+  return text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 
 /**
  * Boucle agent : Mistral + outils du MCP Simvito (function calling).
@@ -79,17 +96,19 @@ type Message =
 
       if (!message.toolCalls || message.toolCalls.length === 0) {
         const content = message.content;
-        if (typeof content === "string") return content;
+        if (typeof content === "string") return stripUrls(content);
         if (Array.isArray(content)) {
-          return content
-            .map((chunk) =>
-              typeof chunk === "string"
-                ? chunk
-                : "text" in (chunk as Record<string, unknown>)
-                  ? String((chunk as { text?: string }).text ?? "")
-                  : ""
-            )
-            .join("");
+          return stripUrls(
+            content
+              .map((chunk) =>
+                typeof chunk === "string"
+                  ? chunk
+                  : "text" in (chunk as Record<string, unknown>)
+                    ? String((chunk as { text?: string }).text ?? "")
+                    : ""
+              )
+              .join("")
+          );
         }
         return "";
       }

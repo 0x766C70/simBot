@@ -6,6 +6,7 @@ réseaux 4G/5G, opérateurs, téléphones).
 
 import asyncio
 import os
+import re
 
 from dotenv import load_dotenv
 from langchain.agents import create_agent
@@ -24,7 +25,19 @@ Règles :
   N'utilise aucun outil dans ce cas.
 - Pour toute question sur les eSIM, forfaits, réseaux ou destinations,
   sers-toi des outils MCP Simvito fournis. Réponds en français.
+- Lorsque tu présentes des forfaits, indique UNIQUEMENT pour chacun :
+  les opérateurs locaux, le prix et la quantité de données.
+  N'inclue jamais d'URL, de lien ou de renvoi vers un site d'achat,
+  même si les outils t'en fournissent.
 """
+
+
+def strip_urls(text: str) -> str:
+    """Retire toute URL de la réponse (garde le libellé des liens markdown)."""
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"https?://\S+", "", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
 def build_agent():
@@ -60,7 +73,7 @@ async def chat():
             break
 
         result = await agent.ainvoke({"messages": [("user", question)]})
-        answer = result["messages"][-1].content
+        answer = strip_urls(result["messages"][-1].content)
         print(f"\nsimBot : {answer}")
 
 
